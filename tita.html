@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compartiendo Ubicación...</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 30px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .icon.show {
+            display: block;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+        
+        p {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+        
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .location-details {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+            display: none;
+        }
+        
+        .location-details.show {
+            display: block;
+        }
+        
+        .location-details h3 {
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .location-details p {
+            margin: 8px 0;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #25D366;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        button.show {
+            display: inline-block;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(37, 211, 102, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner" id="spinner"></div>
+        <div class="icon" id="icon">📍</div>
+        
+        <h1 id="title">Obteniendo tu ubicación...</h1>
+        <p id="message">Por favor, permite el acceso a tu ubicación cuando te lo pida el navegador.</p>
+        
+        <div id="status" class="status loading">
+            Esperando permisos...
+        </div>
+        
+        <div id="locationDetails" class="location-details">
+            <h3>✅ Ubicación Compartida</h3>
+            <p><strong>Latitud:</strong> <span id="lat"></span></p>
+            <p><strong>Longitud:</strong> <span id="lon"></span></p>
+            <p><strong>Precisión:</strong> <span id="accuracy"></span> metros</p>
+            <p><strong>Hora:</strong> <span id="time"></span></p>
+        </div>
+        
+        <button id="whatsappBtn" onclick="shareViaWhatsApp()">
+            💚 Enviar también por WhatsApp
+        </button>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        // Tu configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAsW9OUThwlr7vj7YIQR8qz0ZD6SGlAmkg",
+            authDomain: "tita-74be2.firebaseapp.com",
+            databaseURL: "https://tita-74be2-default-rtdb.firebaseio.com",
+            projectId: "tita-74be2",
+            storageBucket: "tita-74be2.firebasestorage.app",
+            messagingSenderId: "274777162474",
+            appId: "1:274777162474:web:087dbda247233f2b408d93"
+        };
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        
+        let locationData = null;
+
+        // Iniciar automáticamente al cargar la página
+        window.addEventListener('load', function() {
+            setTimeout(getLocationAutomatically, 1000);
+        });
+
+        async function getLocationAutomatically() {
+            if (!navigator.geolocation) {
+                showError('Tu navegador no soporta geolocalización');
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    locationData = {
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude,
+                        accuracy: Math.round(position.coords.accuracy),
+                        timestamp: new Date().toISOString()
+                    };
+
+                    // Guardar en Firebase
+                    await saveLocationToFirebase(locationData);
+                    
+                    showSuccess();
+                },
+                (error) => {
+                    let errorMessage = '';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = '❌ Permiso denegado. Por favor, permite el acceso a tu ubicación y recarga la página.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = '❌ Ubicación no disponible. Verifica tu conexión GPS.';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = '❌ Tiempo agotado. Recarga la página para intentar de nuevo.';
+                            break;
+                        default:
+                            errorMessage = '❌ Error desconocido al obtener ubicación.';
+                    }
+                    showError(errorMessage);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        async function saveLocationToFirebase(data) {
+            try {
+                const locationRef = ref(database, 'emergency_location');
+                await set(locationRef, {
+                    ...data,
+                    serverTimestamp: serverTimestamp()
+                });
+                console.log('✅ Ubicación guardada en Firebase');
+            } catch (error) {
+                console.error('❌ Error al guardar en Firebase:', error);
+                document.getElementById('status').textContent = '⚠️ Ubicación obtenida pero hubo un error al guardarla. Intenta recargar.';
+                document.getElementById('status').className = 'status error';
+            }
+        }
+
+        function showSuccess() {
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('icon').classList.add('show');
+            document.getElementById('title').textContent = '¡Ubicación Enviada!';
+            document.getElementById('message').textContent = 'Tu ubicación ha sido compartida automáticamente. Tu compañero ya puede verla en tiempo real.';
+            
+            document.getElementById('lat').textContent = locationData.lat.toFixed(6);
+            document.getElementById('lon').textContent = locationData.lon.toFixed(6);
+            document.getElementById('accuracy').textContent = locationData.accuracy;
+            document.getElementById('time').textContent = new Date(locationData.timestamp).toLocaleString('es-PE');
+            
+            document.getElementById('status').textContent = '✅ Ubicación compartida exitosamente con Firebase';
+            document.getElementById('status').className = 'status success';
+            document.getElementById('locationDetails').classList.add('show');
+            document.getElementById('whatsappBtn').classList.add('show');
+        }
+
+        function showError(message) {
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('icon').textContent = '⚠️';
+            document.getElementById('icon').classList.add('show');
+            document.getElementById('title').textContent = 'No se pudo obtener la ubicación';
+            document.getElementById('message').textContent = 'Hubo un problema al acceder a tu ubicación.';
+            document.getElementById('status').textContent = message;
+            document.getElementById('status').className = 'status error';
+        }
+
+        // Hacer función global para el botón de WhatsApp
+        window.shareViaWhatsApp = function() {
+            if (!locationData) return;
+            
+            const mapsUrl = `https://www.google.com/maps?q=${locationData.lat},${locationData.lon}`;
+            const message = `🆘 UBICACIÓN DE EMERGENCIA\n\nLatitud: ${locationData.lat.toFixed(6)}\nLongitud: ${locationData.lon.toFixed(6)}\nPrecisión: ${locationData.accuracy}m\n\n📍 Ver en mapa: ${mapsUrl}`;
+            
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+    </script>
+</body>
+</html>
